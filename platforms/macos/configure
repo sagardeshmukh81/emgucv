@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")"
+cd ../..
+
+INSTALL_FOLDER=$PWD/platforms/macos/build/install
+
+if [ "$1" == "all" ]; then 
+  BUILD_ARCH=-DMACOSX_DEPLOYMENT_TARGET=11.0
+  OSX_SYSROOT_OPTION=-DCMAKE_OSX_SYSROOT:STRING="/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/" 
+  CV_OPTIMIZATION=-DCV_DISABLE_OPTIMIZATION:BOOL=ON
+  CV_PNG_OPTION=-DWITH_PNG:BOOL=FALSE 
+  echo "Building for default architecture"
+else
+  BUILD_ARCH=-DCMAKE_OSX_ARCHITECTURES="$1" 
+  CV_OPTIMIZATION= 
+  CV_PNG_OPTION=-DBUILD_PNG:BOOL=TRUE 
+  echo "Building for $1"
+fi
+
+if [[ $# -lt 2 ]]; then
+    CV_CONTRIB_OPTION=-DOPENCV_EXTRA_MODULES_PATH=../../../opencv_contrib/modules
+    TESSERACT_OPTION=-DEMGU_CV_WITH_TESSERACT:BOOL=TRUE
+    echo "Building with contrib module"
+else
+    if [ "$2" != "core" ]; then
+      CV_CONTRIB_OPTION=-DOPENCV_EXTRA_MODULES_PATH=../../../opencv_contrib/modules
+      TESSERACT_OPTION=-DEMGU_CV_WITH_TESSERACT:BOOL=TRUE
+      echo "Building with contrib module"
+    else
+      TESSERACT_OPTION=-DEMGU_CV_WITH_TESSERACT:BOOL=FALSE 
+      echo "Building without contrib module"
+    fi
+fi
+
+cd eigen
+mkdir -p build
+cd build
+cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DCMAKE_BUILD_TYPE:STRING="Release" -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" ..
+cmake --build . --config Release --parallel --target install
+cd ../..
+
+if [ "$CV_CONTRIB_OPTION" != "" ]; then
+    cd freetype2
+    mkdir -p build
+    cd build
+    cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING="Release" -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" ../
+    cmake --build . --config Release --parallel --target install
+    cd ../..
+
+    cd harfbuzz
+    mkdir -p build
+    cd build
+    cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING="Release" -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" -DCMAKE_FIND_ROOT_PATH:STRING="$INSTALL_FOLDER" -DHB_HAVE_FREETYPE:BOOL=TRUE -DHB_BUILD_TESTS:BOOL=FALSE ..
+    cmake --build . --config Release --parallel --target install
+    cd ../..
+
+    cd hdf5
+    mkdir -p build
+    cd build
+    cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING="Release" -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" -DCMAKE_FIND_ROOT_PATH:STRING="$INSTALL_FOLDER" -DBUILD_TESTING:BOOL=FALSE -DHDF5_BUILD_EXAMPLES:BOOL=FALSE -DHDF5_BUILD_TOOLS:BOOL=FALSE -DHDF5_BUILD_UTILS:BOOL=FALSE ..
+    cmake --build . --config Release --parallel --target install
+    cd ../..
+
+    cd vtk
+    mkdir -p build
+    cd build
+    VTK_OPTION=-DVTK_DIR:STRING="$PWD"
+#   VTK_OPTION=-DVTK_DIR:STRING="$INSTALL_FOLDER/lib/cmake/vtk-8.2/"
+#   VTK_OPTION=-DVTK_DIR:STRING="$INSTALL_FOLDER/"
+    cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DBUILD_TESTING:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_BUILD_TYPE:STRING="Release" -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" -DCMAKE_FIND_ROOT_PATH:STRING="$INSTALL_FOLDER" -DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING="NO"  -DVTK_MODULE_ENABLE_VTK_png:STRING="NO" -DVTK_USE_SYSTEM_PNG:BOOL=ON -DVTK_MODULE_ENABLE_VTK_hdf5:STRING="NO" ..
+#    cmake $BUILD_ARCH $OSX_SYSROOT_OPTION -DBUILD_TESTING:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=OFF -DCMAKE_BUILD_TYPE:BOOL=Release -DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" -DCMAKE_FIND_ROOT_PATH:STRING="$INSTALL_FOLDER" -DVTK_MODULE_ENABLE_VTK_RenderingFreeType:STRING="NO"  -DVTK_MODULE_ENABLE_VTK_png:STRING="NO" -DHDF5_EXTERNALLY_CONFIGURED=1 -DHDF5_EXTERNAL_LIB_PREFIX:STRING="vtk" ..
+    cmake --build . --config Release --parallel --target install
+    cd ../..
+else
+    FREETYPE_OPTION=-DEMGU_CV_WITH_FREETYPE:BOOL=FALSE
+    VTK_OPTION=  
+fi
+
+
+cd platforms/macos
+mkdir -p build
+cd build
+
+set -x
+cmake $BUILD_ARCH $OSX_SYSROOT_OPTION $CV_OPTIMIZATION \
+-DCMAKE_BUILD_TYPE:STRING="Release" \
+-DBUILD_PERF_TESTS=FALSE \
+-DBUILD_TESTS:BOOL=FALSE \
+-DBUILD_DOCS:BOOL=FALSE \
+-DBUILD_JPEG:BOOL=TRUE \
+$CV_PNG_OPTION \
+-DBUILD_TIFF:BOOL=TRUE \
+-DWITH_WEBP:BOOL=OFF \
+-DWITH_IPP:BOOL=OFF \
+-DBUILD_opencv_ts:BOOL=OFF \
+-DBUILD_opencv_python2:BOOL=OFF \
+-DBUILD_opencv_python3:BOOL=OFF \
+-DBUILD_opencv_apps:BOOL=OFF \
+-DWITH_CUDA:BOOL=OFF \
+$CV_CONTRIB_OPTION \
+$TESSERACT_OPTION \
+-DBUILD_SHARED_LIBS:BOOL=OFF \
+$VTK_OPTION \
+-DCMAKE_FIND_ROOT_PATH:STRING="$INSTALL_FOLDER" \
+-DEigen3_DIR:STRING="$PWD/../../../eigen/build" \
+-DWITH_LAPACK:BOOL=OFF \
+-DCMAKE_INSTALL_PREFIX:STRING="$INSTALL_FOLDER" \
+$FREETYPE_OPTION \
+../../../
+set +x
+#-DCMAKE_CXX_FLAGS_RELEASE:STRING=-g0 \
+#-DCMAKE_C_FLAGS_RELEASE:STRING=-g0 \
+#-DCMAKE_SHARED_LINKER_FLAGS:STRING=-Wl,-dead_strip \				
+
+make
+
+cd ..
