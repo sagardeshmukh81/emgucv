@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+cd ../../platforms/macos
+
+rm -rf cvextern.bundle
+
+mkdir -p cvextern.bundle/Contents/MacOS
+mkdir -p cvextern.bundle/Contents/Resources
+
+MACOS_NATIVE_DYLIB_FOLDER=../../libs/runtimes/osx/native
+
+cp $MACOS_NATIVE_DYLIB_FOLDER/libcvextern.dylib cvextern.bundle/Contents/MacOS/
+
+if [[ -f $MACOS_NATIVE_DYLIB_FOLDER/libusb-1.0.0.dylib ]]; then
+    mkdir -p cvextern.bundle/Contents/Frameworks
+    install_name_tool -change "@rpath/libusb-1.0.0.dylib" "@loader_path/../Frameworks/libusb-1.0.0.dylib" cvextern.bundle/Contents/MacOS/libcvextern.dylib
+    cp $MACOS_NATIVE_DYLIB_FOLDER/libusb*.dylib cvextern.bundle/Contents/Frameworks/
+    chmod u+w cvextern.bundle/Contents/Frameworks/libusb*.dylib
+fi
+
+cp Info.plist cvextern.bundle/Contents/Info.plist
+cp icons.icns cvextern.bundle/Contents/Resources/
+
+
+

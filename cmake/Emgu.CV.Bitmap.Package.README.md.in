@@ -1,0 +1,26 @@
+## About
+
+This package is part of the ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH} release of Emgu CV. 
+
+For online documentation please visit
+<${NUGET_EMGU_URL}/wiki/files/${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}/document/index.html>
+
+Release note can be found at
+<${NUGET_EMGU_URL}/wiki/index.php/Version_History#Emgu.CV-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}>
+
+## How to Use
+
+```csharp
+Bitmap bmp = ... //Some bitmap object
+Mat mat = bmp.ToMat() //convert Bitmap to Mat
+... // modify on your Mat
+Bitmap otherBmp = mat.ToBitmap(); // convert Mat to Bitmap
+```
+
+## Supported platforms
+
+* Windows
+* Linux (require GDI+)
+* Mac OS (require GDI+)
+
+This package do not support mobile platforms. GDI+ is not available on iOS or Android

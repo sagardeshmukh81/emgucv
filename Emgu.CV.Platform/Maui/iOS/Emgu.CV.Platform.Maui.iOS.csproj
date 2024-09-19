@@ -1,0 +1,77 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0-ios11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+    <IsBindingProject>true</IsBindingProject>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <NoBindingEmbedding>false</NoBindingEmbedding>
+  </PropertyGroup>
+  <PropertyGroup>
+    <EmguCVIOSLinkTarget>MAUI IOS Library</EmguCVIOSLinkTarget>
+    <OpenCVBinaryDir>$([System.IO.Path]::GetFullPath($(MSBuildThisFileDirectory)..\..\..\libs))</OpenCVBinaryDir>
+    <EmguCVNativeIOSBinary>$(OpenCVBinaryDir)\iOS\libcvextern_universal.a</EmguCVNativeIOSBinary>    
+    <EmguCVMauiIOSErrorMessage Condition="!Exists('$(EmguCVNativeIOSBinary)')">This package do not contain necessary binary for $(EmguCVIOSLinkTarget). Emgu CV for iOS Commercial License is required. iOS is targeted, but file $(EmguCVNativeIOSBinary) is missing.</EmguCVMauiIOSErrorMessage>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+	<OutputPath>$(OpenCVBinaryDir)\Build\$(AssemblyName)\$(Platform)\$(Configuration)\</OutputPath>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
+    <PlatformTarget>anycpu</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  	<OutputPath>$(OpenCVBinaryDir)\Build\$(AssemblyName)\$(Platform)\$(Configuration)\</OutputPath>
+    <DocumentationFile>$(OutputPath)$(AssemblyName).xml</DocumentationFile>
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Emgu.CV.NativeImage\CGImageExtension.cs" Link="CGImageExtension.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Emgu.CV.NativeImage\UIImageExtension.cs" Link="UIImageExtension.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Emgu.CV.NativeImage\CIImageExtension.cs" Link="CIImageExtension.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\Xamarin\iOS\CvInvokeIOS.cs" Link="CvInvokeIOS.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ObjcBindingApiDefinition Include="ApiDefinition.cs" />
+    <ObjcBindingCoreSource Include="StructsAndEnums.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\NetStandard_iOS\Emgu.CV.Platform.NetStandard.IOS.csproj">
+      <ReferenceSourceTarget>ProjectReference</ReferenceSourceTarget>
+    </ProjectReference>
+  </ItemGroup>
+  
+    <ItemGroup>
+    <NativeReference Condition="Exists('$(EmguCVNativeIOSBinary)')" Include="$(EmguCVNativeIOSBinary)">
+      <Kind>Static</Kind>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+      <IsCxx>True</IsCxx>
+      <LinkerFlags>-stdlib=libc++ -ObjC -lc++</LinkerFlags>
+      <Frameworks>Foundation Accelerate CoreFoundation CoreGraphics AssetsLibrary AVFoundation CoreImage CoreMedia CoreVideo QuartzCore ImageIO UIKit CoreText</Frameworks>
+    </NativeReference>
+    <!-- 
+    <NativeReference Include="$(OpenCVBinaryDir)\iOS\libcvextern_simulator.a">
+      <Kind>Static</Kind>
+      <SmartLink>True</SmartLink>
+      <ForceLoad>True</ForceLoad>
+      <IsCxx>True</IsCxx>
+      <LinkerFlags>-stdlib=libc++ -ObjC -lc++</LinkerFlags>
+      <Frameworks>Foundation Accelerate CoreFoundation CoreGraphics AssetsLibrary AVFoundation CoreImage CoreMedia CoreVideo QuartzCore ImageIO UIKit CoreText</Frameworks>
+    </NativeReference>
+    -->
+  </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Message Text="Copying $(OutputPath)$(AssemblyName).dll and $(OutputPath)$(AssemblyName).xml to $(OpenCVBinaryDir)" Importance="high" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(OpenCVBinaryDir)" ContinueOnError="true" />
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).xml" DestinationFolder="$(OpenCVBinaryDir)" ContinueOnError="true" />
+  </Target>
+  
+  <Target Name="EmguCVMauiIOSPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <Warning Text="'$(EmguCVMauiIOSErrorMessage)'" Condition="'$(EmguCVMauiIOSErrorMessage)'!=''" />
+  </Target>
+</Project>

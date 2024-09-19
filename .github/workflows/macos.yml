@@ -1,0 +1,35 @@
+name: Mac OS Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-12
+    
+    # one day time out
+    timeout-minutes: 1440
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+    - uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.0.x'
+    - name: Install dotnet workload 
+      run: dotnet workload install maui maccatalyst
+    - name: Build Emgu CV native binary
+      run: ./configure_x86_64
+      working-directory: ./platforms/macos/
+    - name: Build Emgu CV package (unsigned)
+      run: make package
+      working-directory: ./platforms/macos/build_x86_64/
+    - uses: actions/upload-artifact@v2
+      with:
+        name: emgucv-macos-zip-package
+        path: ${{ github.workspace }}/platforms/macos/build/*.zip
